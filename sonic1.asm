@@ -4933,13 +4933,14 @@ loc_39E8:
 		move.b	($FFFFFE10).w,d0
 		lsl.w	#2,d0
 		movea.l	(a1,d0.w),a1
-		tst.w	($FFFFFFF0).w	; is demo mode on?
-		bpl.s	Level_Demo	; if yes, branch
-		lea	(Demo_EndIndex).l,a1 ; load ending demo	data
-		move.w	($FFFFFFF4).w,d0
-		subq.w	#1,d0
-		lsl.w	#2,d0
-		movea.l	(a1,d0.w),a1
+		; We do not have any demo...
+;		tst.w	($FFFFFFF0).w	; is demo mode on?
+;		bpl.s	Level_Demo	; if yes, branch
+;		lea	(Demo_EndIndex).l,a1 ; load ending demo	data
+;		move.w	($FFFFFFF4).w,d0
+;		subq.w	#1,d0
+;		lsl.w	#2,d0
+;		movea.l	(a1,d0.w),a1
 
 Level_Demo:
 		move.b	1(a1),($FFFFF792).w ; load key press duration
@@ -5497,14 +5498,19 @@ byte_3FCF:	dc.b 0			; XREF: LZWaterSlides
 
 MoveSonicInDemo:			; XREF: Level_MainLoop; et al
 		tst.w	($FFFFFFF0).w	; is demo mode on?
-		bne.s	MoveDemo_On	; if yes, branch
+;		bne.s	MoveDemo_Record	; if yes, branch
+		bne.s	MoveDemo_Play	; if yes, branch
 		rts	
 ; ===========================================================================
 
-; This is an unused subroutine for recording a demo
-
 MoveDemo_Record:
-		lea	($80000).l,a1
+		; Records the demo to RAM, so it could be dumped later
+		; (I dump it with Gens KMod)
+		; Requires sound driver and play routines to be disabled,
+		; because we are using its address space ($FFFFF010).w
+		; NOTICE: Do NOT push the "start" button.
+;		lea	($80000).l,a1
+		lea	$FFFFF010,a1
 		move.w	($FFFFF790).w,d0
 		adda.w	d0,a1
 		move.b	($FFFFF604).w,d0
@@ -5524,7 +5530,7 @@ loc_3FFA:				; XREF: MoveDemo_Record
 		rts	
 ; ===========================================================================
 
-MoveDemo_On:				; XREF: MoveSonicInDemo
+MoveDemo_Play:				; XREF: MoveSonicInDemo
 		tst.b	($FFFFF604).w
 		bpl.s	loc_4022
 		tst.w	($FFFFFFF0).w
@@ -5542,13 +5548,14 @@ loc_4022:
 loc_4038:
 		lsl.w	#2,d0
 		movea.l	(a1,d0.w),a1
-		tst.w	($FFFFFFF0).w
-		bpl.s	loc_4056
-		lea	(Demo_EndIndex).l,a1
-		move.w	($FFFFFFF4).w,d0
-		subq.w	#1,d0
-		lsl.w	#2,d0
-		movea.l	(a1,d0.w),a1
+		; Do not play demo because we do not have...
+;		tst.w	($FFFFFFF0).w
+;		bpl.s	loc_4056
+;		lea	(Demo_EndIndex).l,a1
+;		move.w	($FFFFFFF4).w,d0
+;		subq.w	#1,d0
+;		lsl.w	#2,d0
+;		movea.l	(a1,d0.w),a1
 
 loc_4056:
 		move.w	($FFFFF790).w,d0
@@ -5556,7 +5563,7 @@ loc_4056:
 		move.b	(a1),d0
 		lea	($FFFFF604).w,a0
 		move.b	d0,d1
-		move.b	(a0),d2
+		move.b	-2(a0),d2
 		eor.b	d2,d0
 		move.b	d1,(a0)+
 		and.b	d1,d0
@@ -5576,14 +5583,6 @@ locret_407E:
 ; ---------------------------------------------------------------------------
 Demo_Index:
 	include "_inc\Demo pointers for intro.asm"
-
-Demo_EndIndex:
-	include "_inc\Demo pointers for ending.asm"
-
-		dc.b 0,	$8B, 8,	$37, 0,	$42, 8,	$5C, 0,	$6A, 8,	$5F, 0,	$2F, 8,	$2C
-		dc.b 0,	$21, 8,	3, $28,	$30, 8,	8, 0, $2E, 8, $15, 0, $F, 8, $46
-		dc.b 0,	$1A, 8,	$FF, 8,	$CA, 0,	0, 0, 0, 0, 0, 0, 0, 0,	0
-		even
 
 ; ---------------------------------------------------------------------------
 ; Collision index loading subroutine
@@ -5786,9 +5785,13 @@ Signpost_Exit:
 
 ; ===========================================================================
 Demo_GHZ:	incbin	demodata\i_ghz.bin
+		even
 Demo_MZ:	incbin	demodata\i_mz.bin
+		even
 Demo_SYZ:	incbin	demodata\i_syz.bin
+		even
 Demo_SS:	incbin	demodata\i_ss.bin
+		even
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
@@ -7112,89 +7115,26 @@ Cred_ClrPallet:
 		move.b	#$8A,($FFFFD080).w ; load credits object
 		jsr	ObjectsLoad
 		jsr	BuildSprites
-		bsr.w	EndingDemoLoad
-		moveq	#0,d0
-		move.b	($FFFFFE10).w,d0
-		lsl.w	#4,d0
-		lea	(MainLoadBlocks).l,a2 ;	load block mappings etc
-		lea	(a2,d0.w),a2
-		moveq	#0,d0
-		move.b	(a2),d0
-		beq.s	loc_5862
-		bsr.w	LoadPLC		; load level patterns
 
 loc_5862:
 		moveq	#1,d0
 		bsr.w	LoadPLC		; load standard	level patterns
-		move.w	#120,($FFFFF614).w ; display a credit for 2 seconds
+		move.w	#10*60,($FFFFF614).w ; display a credit for some seconds
 		bsr.w	Pal_FadeTo
 
 Cred_WaitLoop:
 		move.b	#4,($FFFFF62A).w
 		bsr.w	WaitVBlank
 		bsr.w	RunPLC_RAM
-		tst.w	($FFFFF614).w	; have 2 seconds elapsed?
+		tst.w	($FFFFF614).w	; have all seconds elapsed?
 		bne.s	Cred_WaitLoop	; if not, branch
 		tst.l	($FFFFF680).w	; have level gfx finished decompressing?
 		bne.s	Cred_WaitLoop	; if not, branch
-		cmpi.w	#9,($FFFFFFF4).w ; have	the credits finished?
-		beq.w	TryAgainEnd	; if yes, branch
-		rts	
-
-; ---------------------------------------------------------------------------
-; Ending sequence demo loading subroutine
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-EndingDemoLoad:				; XREF: Credits
-		move.w	($FFFFFFF4).w,d0
-		andi.w	#$F,d0
-		add.w	d0,d0
-		move.w	EndDemo_Levels(pc,d0.w),d0 ; load level	array
-		move.w	d0,($FFFFFE10).w ; set level from level	array
 		addq.w	#1,($FFFFFFF4).w
-		cmpi.w	#9,($FFFFFFF4).w ; have	credits	finished?
-		bcc.s	EndDemo_Exit	; if yes, branch
-		move.w	#$8001,($FFFFFFF0).w ; force demo mode
-		move.b	#8,($FFFFF600).w ; set game mode to 08 (demo)
-		move.b	#3,($FFFFFE12).w ; set lives to	3
-		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w ; clear rings
-		move.l	d0,($FFFFFE22).w ; clear time
-		move.l	d0,($FFFFFE26).w ; clear score
-		move.b	d0,($FFFFFE30).w ; clear lamppost counter
-		cmpi.w	#4,($FFFFFFF4).w ; is SLZ demo running?
-		bne.s	EndDemo_Exit	; if not, branch
-		lea	(EndDemo_LampVar).l,a1 ; load lamppost variables
-		lea	($FFFFFE30).w,a2
-		move.w	#8,d0
-
-EndDemo_LampLoad:
-		move.l	(a1)+,(a2)+
-		dbf	d0,EndDemo_LampLoad
-
-EndDemo_Exit:
+		cmpi.w	#9,($FFFFFFF4).w ; have	the credits finished?
+		beq.s	TryAgainEnd	; if yes, branch
 		rts	
-; End of function EndingDemoLoad
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Levels used in the end sequence demos
-; ---------------------------------------------------------------------------
-EndDemo_Levels:	incbin	misc\dm_ord2.bin
-
-; ---------------------------------------------------------------------------
-; Lamppost variables in the end sequence demo (Star Light Zone)
-; ---------------------------------------------------------------------------
-EndDemo_LampVar:
-		dc.b 1,	1		; XREF: EndingDemoLoad
-		dc.w $A00, $62C, $D
-		dc.l 0
-		dc.b 0,	0
-		dc.w $800, $957, $5CC, $4AB, $3A6, 0, $28C, 0, 0, $308
-		dc.b 1,	1
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; "TRY AGAIN" and "END"	screens
@@ -7439,26 +7379,6 @@ locret_5BBA:
 ; ---------------------------------------------------------------------------
 Map_obj8B:
 	include "_maps\obj8B.asm"
-
-; ---------------------------------------------------------------------------
-; Ending sequence demos
-; ---------------------------------------------------------------------------
-Demo_EndGHZ1:	incbin	demodata\e_ghz1.bin
-		even
-Demo_EndMZ:	incbin	demodata\e_mz.bin
-		even
-Demo_EndSYZ:	incbin	demodata\e_syz.bin
-		even
-Demo_EndLZ:	incbin	demodata\e_lz.bin
-		even
-Demo_EndSLZ:	incbin	demodata\e_slz.bin
-		even
-Demo_EndSBZ1:	incbin	demodata\e_sbz1.bin
-		even
-Demo_EndSBZ2:	incbin	demodata\e_sbz2.bin
-		even
-Demo_EndGHZ2:	incbin	demodata\e_ghz2.bin
-		even
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	load level boundaries and start	locations
@@ -39979,21 +39899,26 @@ Sound_ExIndex:
 ; ---------------------------------------------------------------------------
 
 Sound_E1:				; XREF: Sound_ExIndex
-		move.b	#$88,($A01FFF).l
-		move.w	#0,($A11100).l	; start	the Z80
-		move.w	#$11,d1
+		lea	(SegaPCM).l,a2			; Load the SEGA PCM sample into a2. It's important that we use a2 since a0 and a1 are going to be used up ahead when reading the joypad ports 
+		move.l	#(SegaPCM_End-SegaPCM),d3	; Load the size of the SEGA PCM sample into d3 
+		move.b	#$2A,($A04000).l		; $A04000 = $2A -> Write to DAC channel	  
 
-loc_71FC0:
-		move.w	#-1,d0
+PlayPCM_Loop:
+		move.b	(a2)+,($A04001).l		; Write the PCM data (contained in a2) to $A04001 (YM2612 register D0) 
+		move.w	#$14,d0				; Write the pitch ($14 in this case) to d0 
+		dbf	d0,*				; Decrement d0; jump to itself if not 0. (for pitch control, avoids playing the sample too fast)  
+		sub.l	#1,d3				; Subtract 1 from the PCM sample size 
+		beq.s	return_PlayPCM			; If d3 = 0, we finished playing the PCM sample, so stop playing, leave this loop, and unfreeze the 68K 
+		lea	($FFFFF604).w,a0		; address where JoyPad states are written 
+		lea	($A10003).l,a1			; address where JoyPad states are read from 
+		jsr	(Joypad_Read).w			; Read only the first joypad port. It's important that we do NOT do the two ports, we don't have the cycles for that 
+		btst	#7,($FFFFF604).w		; Check for Start button 
+		bne.s	return_PlayPCM			; If start is pressed, stop playing, leave this loop, and unfreeze the 68K 
+		bra.s	PlayPCM_Loop			; Otherwise, continue playing PCM sample 
 
-loc_71FC4:
-		nop	
-		dbf	d0,loc_71FC4
-
-		dbf	d1,loc_71FC0
-
-		addq.w	#4,sp
-		rts	
+return_PlayPCM: 
+		addq.w	#4,sp 
+		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play music track $81-$9F
@@ -41804,7 +41729,7 @@ SoundCF:	incbin	sound\soundCF.bin
 SoundD0:	incbin	sound\soundD0.bin
 		even
 SegaPCM:	incbin	sound\segapcm.bin
-		even
+SegaPCM_End:	even
 
 		align	$20000
 TC_HelixWeave:	incbin	"Title Cards\Helix Weave.bin"
