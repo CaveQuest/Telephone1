@@ -1,37 +1,51 @@
 ; ===========================================================================
+; lets put all the assembler options here! Much cleaner commandline, go!
+	opt op+
+	opt os+
+	opt ow+
+	opt oz+
+	opt oaq+
+	opt osq+
+	opt omq+
+	opt ae-
+
 ; ---------------------------------------------------------------------------
 ; Macro functions
 ; ---------------------------------------------------------------------------
 
 	; --- Padding/Alignment ---
 
-align		macro
-		dcb.b	\1-(*%\1),$FF
-		endm
+align		macro align, val
+	if narg=2
+		dcb.b	\align-(*%\align),\val
+	else
+		dcb.b	\align-(*%\align),$FF
+	endif
+    endm
 
 	; --- DMA to (a6) containing C00004 ---
 
-DMA:		macro	Size, Source, Destination
-		move.l	#(((((Size/$02)<<$08)&$FF0000)+((Size/$02)&$FF))+$94009300),(a6)
-		move.l	#((((((Source&$FFFFFF)/$02)<<$08)&$FF0000)+(((Source&$FFFFFF)/$02)&$FF))+$96009500),(a6)
-		move.l	#(((((Source&$FFFFFF)/$02)&$7F0000)+$97000000)+((Destination>>$10)&$FFFF)),(a6)
-		move.w	#((Destination&$FF7F)|$80),(a6)
-		endm
+DMA		macro	size, source, destination
+	move.l	#(((((\size/$02)<<$08)&$FF0000)+((\size/$02)&$FF))+$94009300),(a6)
+	move.l	#((((((\source&$FFFFFF)/$02)<<$08)&$FF0000)+(((\source&$FFFFFF)/$02)&$FF))+$96009500),(a6)
+	move.l	#(((((\source&$FFFFFF)/$02)&$7F0000)+$97000000)+((\destination>>$10)&$FFFF)),(a6)
+	move.w	#((\destination&$FF7F)|$80),(a6)
+    endm
 
 	; --- incbin for DMA required data ---
 
-incdma:		macro	*
-		if ((*+filesize(\1))&$FE0000)>(*&$FE0000)
-			align $20000
-		endc
+incdma		macro	file
+	if ((*+filesize(\file))&$FE0000)>(*&$FE0000)
+		align $20000
+	endc
 \*:
-		if (*+filesize(\1))>($20000)
-			incbin	\1, $0000, $20000
-			even
-		else
-			incbin	\1
-			even
-		endc
-		endm
+	if (*+filesize(\file))>($20000)
+		incbin	\file, $0000, $20000
+		even
+	else
+		incbin	\file
+		even
+	endc
+    endm
 
 ; ===========================================================================
