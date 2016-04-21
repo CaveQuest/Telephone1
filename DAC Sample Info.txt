@@ -1,0 +1,32 @@
+$81 - Chaotix Electric Kick
+$82 - Chaotix Electric Snare
+$83 - Chaotix Tom
+$84 - Chaotix Clap
+$85 - Chaotix Crash Cymbal
+$86 - Chaotix Chinese Cymbal
+$87 - Chaotix Tambourine Hit
+$88 - Chaotix High Tom
+$89 - Chaotix Mid-High Tom
+$8A - Chaotix Mid-Low Tom
+$8B - Chaotix Low Tom
+$8C - Chaotix Acoustic Kick
+$8D - Chaotix Acoustic Snare
+$8E - Rusty Ruin High Tom (in intro)
+$8F - Rusty Ruin Mid-High Tom
+$90 - Rusty Ruin Mid-Low Tom
+$91 - Rusty Ruin Low Tom
+$92 - Sonic 3K Kick
+$93 - Sonic 3K Snare
+$94 - Sonic 3K Ride Cymbal
+$95 - Sonic 3K "Go!"
+$96 - Sonic 1 Kick
+$97 - Sonic 1 Snare
+$98 - Sonic 3K Crash Cymbal
+$99 - Sonic 3K Muffled Snare
+$9A - Chou Kyuukai Miracle Nine Kick
+$9B - Chou Kyuukai Miracle Nine Snare
+$9C - Sonic 3K High Tom
+$9D - Sonic 3K Mid-High Tom
+$9E - Sonic 3K Mid-Low Tom
+$9F - Sonic 3K Low Tom
+$A0 - Sonic 2 Beta Low Tom
