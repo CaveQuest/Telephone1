@@ -39,13 +39,13 @@ TC_CS_Levels:	dcnl	TC_GHZ,	1
 ; ASCII text (Please use CAPITAL LETTERS ONLY)
 ; ---------------------------------------------------------------------------
 
-TC_GHZ:		dc.b	"GREEN HILL",$00
-TC_MZ:		dc.b	"MARBLE",$00
-TC_SYZ:		dc.b	"SPRING YARD",$00
-TC_LZ:		dc.b	"LABYRINTH",$00
-TC_SLZ:		dc.b	"STAR LIGHT",$00
-TC_SBZ:		dc.b	"SCRAP BRAIN",$00
-TC_FZ:		dc.b	"FINAL",$00
+TC_GHZ:		dc.b	"LUSH PLAINS",$00
+TC_MZ:		dc.b	"VOLCANIC HEAT",$00
+TC_SYZ:		dc.b	"NEON CITY",$00
+TC_LZ:		dc.b	"UNDERWATER UTOPIA",$00
+TC_SLZ:		dc.b	"NIGHTMARE HIGHWAY",$00
+TC_SBZ:		dc.b	"IMPENDING DOOM",$00
+TC_FZ:		dc.b	"THE FINAL BATTLE",$00
 		even
 
 ; ===========================================================================
