@@ -30,8 +30,8 @@ Vectors:	dc.l $FFFE00, EntryPoint, BusError, AddressError
 		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
 Console:	dc.b 'SEGA MEGA DRIVE ' ; Hardware system ID
 Date:		dc.b '(C)SEGA 1991.APR' ; Release date
-Title_Local:	dc.b 'SONIC THE               HEDGEHOG                ' ; Domestic name
-Title_Int:	dc.b 'SONIC THE               HEDGEHOG                ' ; International name
+Title_Local:	dc.b 'SSRG Telephone Hack 1                           ' ; Domestic name
+Title_Int:	dc.b 'SSRG Telephone Hack 1                           ' ; International name
 Serial:		dc.b 'GM 00001009-00'   ; Serial/version number
 Checksum:	dc.w 0
 		dc.b 'J               ' ; I/O support
@@ -1119,21 +1119,26 @@ loc_134A:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-SoundDriverLoad:			; XREF: GameClrRAM; TitleScreen
-		nop	
-		move.w	#$100,($A11100).l ; stop the Z80
-		move.w	#$100,($A11200).l ; reset the Z80
-		lea	(Kos_Z80).l,a0	; load sound driver
-		lea	($A00000).l,a1
-		bsr.w	KosDec		; decompress
-		move.w	#0,($A11200).l
-		nop	
-		nop	
-		nop	
-		nop	
-		move.w	#$100,($A11200).l ; reset the Z80
-		move.w	#0,($A11100).l	; start	the Z80
-		rts	
+SoundDriverLoad: ; XREF: GameClrRAM; TitleScreen
+                nop
+                move.w #$100,d0
+                move.w d0,($A11100).l
+                move.w d0,($A11200).l
+                lea (MegaPCM).l,a0
+                lea ($A00000).l,a1
+                move.w #(MegaPCM_End-MegaPCM)-1,d1
+@Load:          
+                move.b (a0)+,(a1)+
+                dbf d1,@Load
+                moveq #0,d1
+                move.w d1,($A11200).l
+                nop
+                nop
+                nop
+                nop
+                move.w d0,($A11200).l
+                move.w d1,($A11100).l
+                rts
 ; End of function SoundDriverLoad
 
 ; ---------------------------------------------------------------------------
@@ -2362,7 +2367,7 @@ loc_1DFA:
 		bne.s	locret_1E24
 		moveq	#0,d0
 		lea	($FFFFFA80).w,a0
-		lea	($FFFFBF80).w,a1
+		lea	($FFFFFA00).w,a1
 		move.b	($FFFFF626).w,d0
 		adda.w	d0,a0
 		adda.w	d0,a1
@@ -2545,7 +2550,7 @@ loc_1F20:
 		bne.s	locret_1F4A
 		moveq	#0,d0
 		lea	($FFFFFA80).w,a0
-		lea	($FFFFBF80).w,a1
+		lea	($FFFFFA00).w,a1
 		move.b	($FFFFF626).w,d0
 		adda.w	d0,a0
 		adda.w	d0,a1
@@ -2855,8 +2860,7 @@ PalLoad4_Water:
 		adda.w	d0,a1
 		movea.l	(a1)+,a2
 		movea.w	(a1)+,a3
-	subi.w	#$FB00,a3
-	addi.w	#$BF80,a3
+		suba.w	#$100,a3
 		move.w	(a1)+,d7
 
 loc_2160:
@@ -3245,7 +3249,7 @@ Title_LoadText:
 		move.b	#$8A,d0		; play title screen music
 		bsr.w	PlaySound_Special
 		move.b	#0,($FFFFFFFA).w ; disable debug mode
-		move.w	#$178,($FFFFF614).w ; run title	screen for $178	frames
+		move.w	#$550,($FFFFF614).w ; run title	screen for $178	frames
 		lea	($FFFFD080).w,a1
 		moveq	#0,d0
 		move.w	#7,d1
@@ -3944,7 +3948,7 @@ TC_ControlVS:
 		move.w	($FFFFC7E0).w,d3			; load scroll position
 		move.l	($FFFFC7E4).w,d0			; load scroll speed
 		add.l	d0,($FFFFC7E0).w			; add to scroll position
-		tst.b	($FFFFC7FF).w				; check buffer being displayed
+		not.b	($FFFFC7FF).w				; swap buffer being displayed
 		bne.s	TC_BufferA				; if buffer B is being displayed, branch
 		lea	$200(a1),a1				; advance to buffer B (buffer A is being displayed)
 
@@ -4110,7 +4114,6 @@ TCCM_FadeFinish:
 		move.l	#VB_TitleCardNorm,(VBlankInt+$02).w	; set V-blank routine to normal
 		move.l	#TCCM_TextIn,($FFFFC7C0).w		; set next routine
 		move.w	#$0100,($FFFFC7EE).w			; force fade in not to occur
-		move.w	#$0050,($FFFFC7D0).w			; set delay time to hold the text before scrolling off screen
 
 ; ---------------------------------------------------------------------------
 ; Text scrolling in
@@ -4129,13 +4132,10 @@ TCCM_ScrollIdle:
 		cmpi.w	#$0040,d1				; is the text in the middle area?
 		blo.w	TCCM_Slow				; if so, branch
 		bne.w	TCCM_NoOut				; if it's after, branch
-		tst.b	($FFFFC7D2).w				; has the level data loaded yet?
-		bne.w	TCCM_Hold				; if so, branch to delay the text move out
 		tst.l	($FFFFF680).w				; any PLC left to decompress?
 		bne.w	TCCM_NoSlideOut				; if so, branch
 		tst.w	($FFFFC7E4).w				; are the boarders still scrolling?
 		bne.w	TCCM_NoSlideOut				; if so, branch (cannot load large data while things are animate)
-		st.b	($FFFFC7D2).w				; set level data as loaded
 		movem.l	d0-a4,-(sp)				; store registers
 		bsr.w	MainLoadBlockLoad			; load level data fully
 		bsr.w	DeformBypass				; allow deformation/scrolling to run
@@ -4167,20 +4167,12 @@ TCCM_ScrollIdle:
 		move.w	#$0015+1,($FFFFC7F4).w			; set fade timer
 		movem.l	(sp)+,d0-a4				; restore registers
 
-TCCM_Hold:
-		swap	d0					; align back
-		subq.w	#$01,($FFFFC7D0).w
-		bpl.s	TCCM_Update
-		swap	d0					; redo align
-
 TCCM_NoOut:
 		addi.w	#$0010,d0				; move it right fast
 
 TCCM_Slow:
 		swap	d0					; align back
 		addi.l	#$00008000,d0				; move it right slow
-
-TCCM_Update:
 		move.l	d0,($FFFFC7F8).w			; update position
 		tst.w	($FFFFC7EE).w				; has the FG finished drawing?
 		bne.s	TCCM_NoSlideOut				; if not, branch
@@ -4188,7 +4180,6 @@ TCCM_Update:
 		beq.s	TCCM_NoSlideOut				; if not, branch
 		addi.l	#$00004000,($FFFFC7E4).w		; increase boarder scroll speed
 		st.b	($FFFFC7E8).w				; enable level elements
-		st.b	($FFFFC7D3).w				; set to scroll the pylon out
 		subq.w	#$01,($FFFFC7F4).w			; decrease palette fade counter
 		bmi.s	TCCM_NoFadeIn				; if finished, branch
 		move.w	#$202F,($FFFFF626).w			; set to fade palette lines 2-4 in
@@ -4198,9 +4189,6 @@ TCCM_NoFadeIn:
 		clr.w	($FFFFC7F4).w				; keep fade at finish
 		addq.b	#$02,($FFFFC7FE).w			; slide the boarders out more
 		cmpi.b	#TC_GRAPHICBAR+TC_BLACKBAR+$08,($FFFFC7FE).w ; have we fully slid out?
-		blt.s	TCCM_NoSlideOut				; if not, branch
-		move.b	#TC_GRAPHICBAR+TC_BLACKBAR+$08,($FFFFC7FE).w ; keep boarders in place
-		cmpi.w	#$0100,($FFFFC7F8).w			; have all the text scrolled out?
 		blt.s	TCCM_NoSlideOut				; if not, branch
 		move.l	#TCCM_StartLevel,($FFFFC7C0).w		; set next routine
 		ori.b	#$0F,($FFFFF754).w			; set to redraw the top/bottom blocks (clearing out the slit scan boarder)
@@ -4288,10 +4276,10 @@ TCCS_RibbonNext:
 ; ---------------------------------------------------------------------------
 
 TC_CS_Pylon:
-		tst.b	($FFFFC7D3).w				; is the pylon scrolling out yet?
+		tst.b	($FFFFC7F2).w				; is the text scrolling out yet?
 		beq.s	TCCS_PY_NoTextOut			; if not, branch
 		move.w	($FFFFC7F0).w,d5			; load pylon position
-		addq.w	#$08,($FFFFC7F0).w			; advance it right
+		addi.w	#$0014,($FFFFC7F0).w			; advance it right
 		bra.s	TCCS_PY_CheckRange			; continue
 
 TCCS_PY_NoTextOut:
@@ -4631,7 +4619,6 @@ VB_TitleCardSlit:
 		tst.b	($FFFFF62A).w				; is the 68k late?
 		beq.w	VB_TC_NotReadySlit			; if so, branch
 		sf.b	($FFFFF62A).w				; set as V-blank ran
-		not.b	($FFFFC7FF).w				; swap buffer being displayed
 		movem.l	d0-a6,-(sp)				; store register data
 		lea	($C00000).l,a5				; load VDP data port
 		lea	$04(a5),a6				; load VDP control port
@@ -4933,14 +4920,13 @@ loc_39E8:
 		move.b	($FFFFFE10).w,d0
 		lsl.w	#2,d0
 		movea.l	(a1,d0.w),a1
-		; We do not have any demo...
-;		tst.w	($FFFFFFF0).w	; is demo mode on?
-;		bpl.s	Level_Demo	; if yes, branch
-;		lea	(Demo_EndIndex).l,a1 ; load ending demo	data
-;		move.w	($FFFFFFF4).w,d0
-;		subq.w	#1,d0
-;		lsl.w	#2,d0
-;		movea.l	(a1,d0.w),a1
+		tst.w	($FFFFFFF0).w	; is demo mode on?
+		bpl.s	Level_Demo	; if yes, branch
+		lea	(Demo_EndIndex).l,a1 ; load ending demo	data
+		move.w	($FFFFFFF4).w,d0
+		subq.w	#1,d0
+		lsl.w	#2,d0
+		movea.l	(a1,d0.w),a1
 
 Level_Demo:
 		move.b	1(a1),($FFFFF792).w ; load key press duration
@@ -5498,19 +5484,14 @@ byte_3FCF:	dc.b 0			; XREF: LZWaterSlides
 
 MoveSonicInDemo:			; XREF: Level_MainLoop; et al
 		tst.w	($FFFFFFF0).w	; is demo mode on?
-;		bne.s	MoveDemo_Record	; if yes, branch
-		bne.s	MoveDemo_Play	; if yes, branch
+		bne.s	MoveDemo_On	; if yes, branch
 		rts	
 ; ===========================================================================
 
+; This is an unused subroutine for recording a demo
+
 MoveDemo_Record:
-		; Records the demo to RAM, so it could be dumped later
-		; (I dump it with Gens KMod)
-		; Requires sound driver and play routines to be disabled,
-		; because we are using its address space ($FFFFF010).w
-		; NOTICE: Do NOT push the "start" button.
-;		lea	($80000).l,a1
-		lea	$FFFFF010,a1
+		lea	($80000).l,a1
 		move.w	($FFFFF790).w,d0
 		adda.w	d0,a1
 		move.b	($FFFFF604).w,d0
@@ -5530,7 +5511,7 @@ loc_3FFA:				; XREF: MoveDemo_Record
 		rts	
 ; ===========================================================================
 
-MoveDemo_Play:				; XREF: MoveSonicInDemo
+MoveDemo_On:				; XREF: MoveSonicInDemo
 		tst.b	($FFFFF604).w
 		bpl.s	loc_4022
 		tst.w	($FFFFFFF0).w
@@ -5548,14 +5529,13 @@ loc_4022:
 loc_4038:
 		lsl.w	#2,d0
 		movea.l	(a1,d0.w),a1
-		; Do not play demo because we do not have...
-;		tst.w	($FFFFFFF0).w
-;		bpl.s	loc_4056
-;		lea	(Demo_EndIndex).l,a1
-;		move.w	($FFFFFFF4).w,d0
-;		subq.w	#1,d0
-;		lsl.w	#2,d0
-;		movea.l	(a1,d0.w),a1
+		tst.w	($FFFFFFF0).w
+		bpl.s	loc_4056
+		lea	(Demo_EndIndex).l,a1
+		move.w	($FFFFFFF4).w,d0
+		subq.w	#1,d0
+		lsl.w	#2,d0
+		movea.l	(a1,d0.w),a1
 
 loc_4056:
 		move.w	($FFFFF790).w,d0
@@ -5563,7 +5543,7 @@ loc_4056:
 		move.b	(a1),d0
 		lea	($FFFFF604).w,a0
 		move.b	d0,d1
-		move.b	-2(a0),d2
+		move.b	(a0),d2
 		eor.b	d2,d0
 		move.b	d1,(a0)+
 		and.b	d1,d0
@@ -5583,6 +5563,14 @@ locret_407E:
 ; ---------------------------------------------------------------------------
 Demo_Index:
 	include "_inc\Demo pointers for intro.asm"
+
+Demo_EndIndex:
+	include "_inc\Demo pointers for ending.asm"
+
+		dc.b 0,	$8B, 8,	$37, 0,	$42, 8,	$5C, 0,	$6A, 8,	$5F, 0,	$2F, 8,	$2C
+		dc.b 0,	$21, 8,	3, $28,	$30, 8,	8, 0, $2E, 8, $15, 0, $F, 8, $46
+		dc.b 0,	$1A, 8,	$FF, 8,	$CA, 0,	0, 0, 0, 0, 0, 0, 0, 0,	0
+		even
 
 ; ---------------------------------------------------------------------------
 ; Collision index loading subroutine
@@ -5785,13 +5773,9 @@ Signpost_Exit:
 
 ; ===========================================================================
 Demo_GHZ:	incbin	demodata\i_ghz.bin
-		even
 Demo_MZ:	incbin	demodata\i_mz.bin
-		even
 Demo_SYZ:	incbin	demodata\i_syz.bin
-		even
 Demo_SS:	incbin	demodata\i_ss.bin
-		even
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
@@ -7115,26 +7099,89 @@ Cred_ClrPallet:
 		move.b	#$8A,($FFFFD080).w ; load credits object
 		jsr	ObjectsLoad
 		jsr	BuildSprites
+		bsr.w	EndingDemoLoad
+		moveq	#0,d0
+		move.b	($FFFFFE10).w,d0
+		lsl.w	#4,d0
+		lea	(MainLoadBlocks).l,a2 ;	load block mappings etc
+		lea	(a2,d0.w),a2
+		moveq	#0,d0
+		move.b	(a2),d0
+		beq.s	loc_5862
+		bsr.w	LoadPLC		; load level patterns
 
 loc_5862:
 		moveq	#1,d0
 		bsr.w	LoadPLC		; load standard	level patterns
-		move.w	#10*60,($FFFFF614).w ; display a credit for some seconds
+		move.w	#120,($FFFFF614).w ; display a credit for 2 seconds
 		bsr.w	Pal_FadeTo
 
 Cred_WaitLoop:
 		move.b	#4,($FFFFF62A).w
 		bsr.w	WaitVBlank
 		bsr.w	RunPLC_RAM
-		tst.w	($FFFFF614).w	; have all seconds elapsed?
+		tst.w	($FFFFF614).w	; have 2 seconds elapsed?
 		bne.s	Cred_WaitLoop	; if not, branch
 		tst.l	($FFFFF680).w	; have level gfx finished decompressing?
 		bne.s	Cred_WaitLoop	; if not, branch
-		addq.w	#1,($FFFFFFF4).w
 		cmpi.w	#9,($FFFFFFF4).w ; have	the credits finished?
-		beq.s	TryAgainEnd	; if yes, branch
+		beq.w	TryAgainEnd	; if yes, branch
 		rts	
 
+; ---------------------------------------------------------------------------
+; Ending sequence demo loading subroutine
+; ---------------------------------------------------------------------------
+
+; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+
+
+EndingDemoLoad:				; XREF: Credits
+		move.w	($FFFFFFF4).w,d0
+		andi.w	#$F,d0
+		add.w	d0,d0
+		move.w	EndDemo_Levels(pc,d0.w),d0 ; load level	array
+		move.w	d0,($FFFFFE10).w ; set level from level	array
+		addq.w	#1,($FFFFFFF4).w
+		cmpi.w	#9,($FFFFFFF4).w ; have	credits	finished?
+		bcc.s	EndDemo_Exit	; if yes, branch
+		move.w	#$8001,($FFFFFFF0).w ; force demo mode
+		move.b	#8,($FFFFF600).w ; set game mode to 08 (demo)
+		move.b	#3,($FFFFFE12).w ; set lives to	3
+		moveq	#0,d0
+		move.w	d0,($FFFFFE20).w ; clear rings
+		move.l	d0,($FFFFFE22).w ; clear time
+		move.l	d0,($FFFFFE26).w ; clear score
+		move.b	d0,($FFFFFE30).w ; clear lamppost counter
+		cmpi.w	#4,($FFFFFFF4).w ; is SLZ demo running?
+		bne.s	EndDemo_Exit	; if not, branch
+		lea	(EndDemo_LampVar).l,a1 ; load lamppost variables
+		lea	($FFFFFE30).w,a2
+		move.w	#8,d0
+
+EndDemo_LampLoad:
+		move.l	(a1)+,(a2)+
+		dbf	d0,EndDemo_LampLoad
+
+EndDemo_Exit:
+		rts	
+; End of function EndingDemoLoad
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Levels used in the end sequence demos
+; ---------------------------------------------------------------------------
+EndDemo_Levels:	incbin	misc\dm_ord2.bin
+
+; ---------------------------------------------------------------------------
+; Lamppost variables in the end sequence demo (Star Light Zone)
+; ---------------------------------------------------------------------------
+EndDemo_LampVar:
+		dc.b 1,	1		; XREF: EndingDemoLoad
+		dc.w $A00, $62C, $D
+		dc.l 0
+		dc.b 0,	0
+		dc.w $800, $957, $5CC, $4AB, $3A6, 0, $28C, 0, 0, $308
+		dc.b 1,	1
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; "TRY AGAIN" and "END"	screens
@@ -7379,6 +7426,26 @@ locret_5BBA:
 ; ---------------------------------------------------------------------------
 Map_obj8B:
 	include "_maps\obj8B.asm"
+
+; ---------------------------------------------------------------------------
+; Ending sequence demos
+; ---------------------------------------------------------------------------
+Demo_EndGHZ1:	incbin	demodata\e_ghz1.bin
+		even
+Demo_EndMZ:	incbin	demodata\e_mz.bin
+		even
+Demo_EndSYZ:	incbin	demodata\e_syz.bin
+		even
+Demo_EndLZ:	incbin	demodata\e_lz.bin
+		even
+Demo_EndSLZ:	incbin	demodata\e_slz.bin
+		even
+Demo_EndSBZ1:	incbin	demodata\e_sbz1.bin
+		even
+Demo_EndSBZ2:	incbin	demodata\e_sbz2.bin
+		even
+Demo_EndGHZ2:	incbin	demodata\e_ghz2.bin
+		even
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	load level boundaries and start	locations
@@ -13520,12 +13587,18 @@ Obj2E_Move:				; XREF: Obj2E_Index
 ; ===========================================================================
 
 Obj2E_ChkEggman:			; XREF: Obj2E_Move
-		addq.b	#2,$24(a0)
-		move.w	#29,$1E(a0)
-		move.b	$1C(a0),d0
-		cmpi.b	#1,d0		; does monitor contain Eggman?
-		bne.s	Obj2E_ChkSonic
-		rts			; Eggman monitor does nothing
+                addq.b    #2,$24(a0)
+                move.w    #29,$1E(a0)
+                move.b    $1C(a0),d0
+                cmpi.b    #1,d0         ; does monitor contain Eggman?
+                bne.s    Obj2E_ChkSonic ; if not, go and check for the next monitor type (1-up icon)
+                move.l    a0,a1         ; move a0 to a1, because Touch_ChkHurt wants the damaging object to be in a1
+                move.l    a0,-(sp)      ; push a0 on the stack, and decrement stack pointer
+                lea    ($FFFFD000).w,a0 ; put Sonic's ram address in a0, because Touch_ChkHurt wants the damaged object to be in a0
+                jsr    Touch_ChkHurt    ; run the Touch_ChkHurt routine
+                move.l    (sp)+,a0      ; pop the previous value of a0 from the stack, and increment stack pointer
+                rts
+
 ; ===========================================================================
 
 Obj2E_ChkSonic:
@@ -16873,6 +16946,8 @@ Obj36_Upright:				; XREF: Obj36_Solid
 Obj36_Hurt:				; XREF: Obj36_SideWays; Obj36_Upright
 		tst.b	($FFFFFE2D).w	; is Sonic invincible?
 		bne.s	Obj36_Display	; if yes, branch
+                tst.w	($FFFFD030).w	; +++ is Sonic invulnerable?
+		bne.s	Obj36_Display	; +++ if yes, branch
 		move.l	a0,-(sp)
 		movea.l	a0,a2
 		lea	($FFFFD000).w,a0
@@ -39336,18 +39411,6 @@ loc_71B5A:
 		btst	#0,($A11100).l
 		bne.s	loc_71B5A
 
-		btst	#7,($A01FFD).l
-		beq.s	loc_71B82
-		move.w	#0,($A11100).l	; start	the Z80
-		nop	
-		nop	
-		nop	
-		nop	
-		nop	
-		bra.s	sub_71B4C
-; ===========================================================================
-
-loc_71B82:
 		lea	($FFF000).l,a6
 		clr.b	$E(a6)
 		tst.b	3(a6)		; is music paused?
@@ -39441,7 +39504,11 @@ loc_71C38:
 		jsr	sub_72850(pc)
 
 loc_71C44:
-		move.w	#0,($A11100).l	; start	the Z80
+		move.b ($A04000).l,d2
+                btst #7,d2
+                bne.s loc_71C44
+                move.b #$2A,($A04000).l
+                move.w	#0,($A11100).l	; start	the Z80
 		rts	
 ; End of function sub_71B4C
 
@@ -39486,23 +39553,13 @@ loc_71C88:
 		move.b	$10(a5),d0
 		cmpi.b	#$80,d0
 		beq.s	locret_71CAA
-		btst	#3,d0
-		bne.s	loc_71CAC
 		move.b	d0,($A01FFF).l
 
 locret_71CAA:
-		rts	
-; ===========================================================================
-
-loc_71CAC:
-		subi.b	#$88,d0
-		move.b	byte_71CC4(pc,d0.w),d0
-		move.b	d0,($A000EA).l
-		move.b	#$83,($A01FFF).l
-		rts	
-; End of function sub_71C4E
+		rts
 
 ; ===========================================================================
+
 byte_71CC4:	dc.b $12, $15, $1C, $1D, $FF, $FF
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -39756,6 +39813,7 @@ loc_71E7C:
 		dbf	d3,loc_71E7C
 
 		jsr	sub_729B6(pc)
+		move.b  #$7F,($A01FFF).l ; pause DAC
 		bra.w	loc_71C44
 ; ===========================================================================
 
@@ -39791,17 +39849,18 @@ loc_71EC4:
 		jsr	sub_72722(pc)
 
 loc_71EDC:
-		adda.w	d3,a5
-		dbf	d4,loc_71EC4
-
-		lea	$340(a6),a5
-		btst	#7,(a5)
-		beq.s	loc_71EFE
-		btst	#2,(a5)
-		bne.s	loc_71EFE
-		move.b	#-$4C,d0
-		move.b	$A(a5),d1
-		jsr	sub_72722(pc)
+                adda.w d3,a5
+                dbf d4,loc_71EC4
+                lea $340(a6),a5
+                btst #7,(a5)
+                beq.s @UnpauseDAC
+                btst #2,(a5)
+                bne.s @UnpauseDAC
+                move.b #-$4C,d0
+                move.b $A(a5),d1
+                jsr sub_72722(pc)
+@UnpauseDAC:
+                move.b #0,($A01FFF).l ; unpause DAC
 
 loc_71EFE:
 		bra.w	loc_71C44
@@ -39898,12 +39957,11 @@ Sound_ExIndex:
 ; Play "Say-gaa" PCM sound
 ; ---------------------------------------------------------------------------
 
-Sound_E1:				; XREF: Sound_ExIndex
+Sound_E1:				  
 		lea	(SegaPCM).l,a2			; Load the SEGA PCM sample into a2. It's important that we use a2 since a0 and a1 are going to be used up ahead when reading the joypad ports 
-		move.l	#(SegaPCM_End-SegaPCM),d3	; Load the size of the SEGA PCM sample into d3 
+		move.l	#(SegaPCM_End-SegaPCM),d3			; Load the size of the SEGA PCM sample into d3
 		move.b	#$2A,($A04000).l		; $A04000 = $2A -> Write to DAC channel	  
-
-PlayPCM_Loop:
+PlayPCM_Loop:	  
 		move.b	(a2)+,($A04001).l		; Write the PCM data (contained in a2) to $A04001 (YM2612 register D0) 
 		move.w	#$14,d0				; Write the pitch ($14 in this case) to d0 
 		dbf	d0,*				; Decrement d0; jump to itself if not 0. (for pitch control, avoids playing the sample too fast)  
@@ -39914,11 +39972,10 @@ PlayPCM_Loop:
 		jsr	(Joypad_Read).w			; Read only the first joypad port. It's important that we do NOT do the two ports, we don't have the cycles for that 
 		btst	#7,($FFFFF604).w		; Check for Start button 
 		bne.s	return_PlayPCM			; If start is pressed, stop playing, leave this loop, and unfreeze the 68K 
-		bra.s	PlayPCM_Loop			; Otherwise, continue playing PCM sample 
-
+		bra.s	PlayPCM_Loop			; Otherwise, continue playing PCM sample
 return_PlayPCM: 
 		addq.w	#4,sp 
-		rts
+		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play music track $81-$9F
@@ -40570,6 +40627,7 @@ loc_725B6:
 
 		move.b	#$80,9(a6)	; set music to $80 (silence)
 		jsr	sub_7256A(pc)
+		move.b #$80,($A01FFF).l ; stop DAC playback
 		bra.w	sub_729B6
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -41566,12 +41624,9 @@ loc_72E64:				; XREF: loc_72A64
 		move.b	#$F,d1
 		bra.w	sub_7272E
 ; ===========================================================================
-Kos_Z80:	incbin	sound\z80_1.bin
-		dc.w ((SegaPCM&$FF)<<8)+((SegaPCM&$FF00)>>8)
-		dc.b $21
-		dc.w (((EndOfRom-SegaPCM)&$FF)<<8)+(((EndOfRom-SegaPCM)&$FF00)>>8)
-		incbin	sound\z80_2.bin
-		even
+Kos_Z80:
+                include	'MegaPCM.asm'
+                even
 Music81:	incbin	sound\music81.bin
 		even
 Music82:	incbin	sound\music82.bin
@@ -41729,7 +41784,7 @@ SoundCF:	incbin	sound\soundCF.bin
 SoundD0:	incbin	sound\soundD0.bin
 		even
 SegaPCM:	incbin	sound\segapcm.bin
-SegaPCM_End:	even
+SegaPCM_end:	even
 
 		align	$20000
 TC_HelixWeave:	incbin	"Title Cards\Helix Weave.bin"
